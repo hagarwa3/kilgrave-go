@@ -3,21 +3,20 @@ package main
 import "net"
 import "fmt"
 import "bufio"
-import "strings" // only needed below for sample processing
+import "os/exec"
+// import "strings" // only needed below for sample processing
 
 func exe_cmd(cmd string) (string, error) {
   fmt.Println("command is ",cmd)
-  // splitting head => g++ parts => rest of the command
-  parts := strings.Fields(cmd)
-  head := parts[0]
-  parts = parts[1:len(parts)]
 
-  out, err := exec.Command(head,parts...).Output()
+  out, err := exec.Command(cmd).Output()
   if err != nil {
+    fmt.Println("error o shit\n")
     fmt.Printf("%s", err)
   }
   fmt.Printf("%s", out)
-  return out, err 
+  fmt.Println("\n")
+  return string(out), err 
 }
 
 func send_response_to_collector(response string) {
@@ -43,13 +42,16 @@ func main() {
   for {
     // will listen for message to process ending in newline (\n)
     message, _ := bufio.NewReader(conn).ReadString('\n')
+    message = message[:len(message)-1]
     // output message received
     fmt.Print("Message Received:", string(message))
     // sample process for string received
-    newmessage := exe_cmd(message)
+    newmessage, error := exe_cmd(message)
     // send new string back to client
-    conn.Write([]byte("ack\n"))
-
+    if(error == nil) {
+      conn.Write([]byte("ack\n"))
+    }
+    conn.Write([]byte("nack\n"))
     send_response_to_collector(newmessage)
   }
 }
